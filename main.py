@@ -2,10 +2,19 @@ from manager import DeckManager, SpotNotFoundError, OperationError, ConsumablesM
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uuid
+import os
+
+deck_state_filename = "deck_state.yaml"
+consumables_state_filename = "consumables.yaml"
+
+if "DeckLog" in os.environ:
+    deck_state_filename = os.environ["DeckLog"]
+if "ConsumableLog" in os.environ:
+    consumables_state_filename = os.environ["ConsumableLog"]
 
 app = FastAPI()
-manager = DeckManager(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], "deck_state.yaml")
-consumables_manager = ConsumablesManager()
+manager = DeckManager(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], deck_state_filename)
+consumables_manager = ConsumablesManager(consumables_state_filename)
 
 class MoveRequest(BaseModel):
     from_spot: str

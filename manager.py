@@ -87,41 +87,62 @@ class DeckManager:
         return True
 
 class ConsumablesManager:
-    def __init__(self):
-        self.consumables = {}
+    def __init__(self, filename = 'consumables.yaml'):
+        self.filepath = Path(filename)
+
+    def load(self):
+        if self.filepath.exists():
+            with open(self.filepath, 'r') as f:
+                return yaml.safe_load(f) or {}
+        else:
+            return {}
+    
+    def save(self, consumable_state):
+        with open(self.filepath, 'w') as f:
+            yaml.safe_dump(consumable_state, f, default_flow_style=False, allow_unicode = True)
 
     def new_item(self, item_type: str, amount: int = 0):
-        if item_type in self.consumables:
+        consumables = self.load()
+        print(consumables)
+        if item_type in consumables:
             raise OperationError(409, "Item already exists.")
         if amount < 0:
             raise OperationError(400, "Invalid number of amount")
-        self.consumables[item_type] = {"amount": amount}
+        consumables[item_type] = {"amount": amount}
+        self.save(consumables)
+        print('*****')
+        print(consumables)
         return True
 
     def refill_item(self, item_type: str, amount: int):
-        if not item_type in self.consumables:
+        consumables = self.load()
+        if not item_type in consumables:
             raise OperationError(404, "Item has not been registered.")
         if amount < 0:
             raise OperationError(400, "Invalid number of amount")
-        self.consumables[item_type]["amount"] += amount
+        consumables[item_type]["amount"] += amount
+        self.save(consumables)
         return True
         
     def consume_item(self, item_type: str, amount: int):
-        if not item_type in self.consumables:
+        consumables = self.load()
+        if not item_type in consumables:
             raise OperationError(404, "Item has not been registered.")
-        if not amount < self.consumables[item_type]["amount"]:
+        if not amount < consumables[item_type]["amount"]:
             #XXX
             raise OperationError(400, "{} Not enough".format(item_type)) 
-        self.consumables[item_type]["amount"] -= amount
+        consumables[item_type]["amount"] -= amount
+        self.save(consumables)
     
     def status(self):
-        ret = {item_type: value["amount"] for item_type, value in self.consumables.items()}
+        consumables = self.load()
+        ret = {item_type: value["amount"] for item_type, value in consumables.items()}
         return ret
 
 
 if __name__ == '__main__':
     print("== Set up Deck: A-H spots")
-    manager = DeckManager(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+    manager = DeckManager(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], 'state2.yaml')
     print(manager.get_all_spot_status())
     
     print("== Put item on spot A")
@@ -145,7 +166,7 @@ if __name__ == '__main__':
 
     print("****************************************")
     print("== Set up Consumables Manager")
-    consumable_manager = ConsumablesManager()
+    consumable_manager = ConsumablesManager('consumables2.yaml')
     print(consumable_manager.status())
 
     print("== Set up water")
