@@ -1,4 +1,5 @@
-
+import yaml
+from pathlib import Path
 
 class SpotNotFoundError(Exception):
     def __init__(self, not_found_spot_name):
@@ -11,49 +12,78 @@ class OperationError(Exception):
     
 
 class DeckManager:
-    def __init__(self, spot_name_list: list, ): #initial_spot_status: list[dict] | None = None):
-        self.deck_status = {}
-        for spot_name in spot_name_list:
-            self.deck_status[spot_name] = None
+    def __init__(self, spot_name_list: list, filename = "state.yaml"): #initial_spot_status: list[dict] | None = None):
+        self.filepath = Path(filename)
+        if self.filepath.exists():
+            deck_status = self.load()
+            for spot_name in spot_name_list:
+                if not spot_name in deck_status:
+                    deck_status[spot_name] = None
+            self.save(deck_status)
+        else:
+            deck_status = {}
+            for spot_name in spot_name_list:
+                deck_status[spot_name] = None
+            self.save(deck_status)
+    
+    def load(self):
+        if self.filepath.exists():
+            with open(self.filepath, 'r') as f:
+                return yaml.safe_load(f) or {}
+        else:
+            return {}
+    def save(self, deck_status: dict):
+        with open(self.filepath, 'w') as f:
+            yaml.safe_dump(deck_status, f, default_flow_style=False, allow_unicode=True)
 
     def get_spot_status(self, spot_name):
-        if not spot_name in self.deck_status:
+        deck_status = self.load()
+        if not spot_name in deck_status:
             raise SpotNotFoundError(spot_name)
-        return self.deck_status[spot_name]
+        return deck_status[spot_name]
     
     def get_all_spot_status(self):
-        return self.deck_status
+        deck_status = self.load()
+        return deck_status
 
     def put_item(self, spot_name, new_item):
-        if not spot_name in self.deck_status:
+        deck_status = self.load()
+        if not spot_name in deck_status:
             raise SpotNotFoundError(spot_name)
-        if not self.deck_status[spot_name] == None:
+        if not deck_status[spot_name] == None:
             raise OperationError(409, "Already item exists")
 
-        self.deck_status[spot_name] = new_item
+        deck_status[spot_name] = new_item
+        print('========================================')
+        print(deck_status)
+        self.save(deck_status)
         return True
 
     def trash_item(self, spot_name):
-        if not spot_name in self.deck_status:
+        deck_status = self.load()
+        if not spot_name in deck_status:
             raise SpotNotFoundError(spot_name)
-        if self.deck_status[spot_name] == None:
+        if deck_status[spot_name] == None:
             raise OperationError(code = 404, reason = "No object exists")
-        self.deck_status[spot_name] = None
+        deck_status[spot_name] = None
+        self.save(deck_status)
         return True
 
     def move_item(self, from_spot_name, to_spot_name):
-        if not from_spot_name in self.deck_status:
+        deck_status = self.load()
+        if not from_spot_name in deck_status:
             raise SpotNotFoundError(from_spot_name)
-        if not to_spot_name in self.deck_status:
+        if not to_spot_name in deck_status:
             raise SpotNotFoundError(to_spot_name)
         
-        if self.deck_status[from_spot_name] == None:
+        if deck_status[from_spot_name] == None:
             raise OperationError(404, "Item does not exist on {}".format(from_spot_name))
-        if not self.deck_status[to_spot_name] == None:
+        if not deck_status[to_spot_name] == None:
             raise OperationError(409, "Item already exists on {}".format(to_spot_name))
-        transfer_obj = self.deck_status[from_spot_name]
-        self.deck_status[from_spot_name] = None
-        self.deck_status[to_spot_name] = transfer_obj
+        transfer_obj = deck_status[from_spot_name]
+        deck_status[from_spot_name] = None
+        deck_status[to_spot_name] = transfer_obj
+        self.save(deck_status)
         return True
 
 class ConsumablesManager:

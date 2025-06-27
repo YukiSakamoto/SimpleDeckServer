@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import uuid
 
 app = FastAPI()
-manager = DeckManager(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+manager = DeckManager(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], "deck_state.yaml")
 consumables_manager = ConsumablesManager()
 
 class MoveRequest(BaseModel):
@@ -25,9 +25,9 @@ class Item(BaseModel):
 
 @app.put("/put_item/{spot_name}/")
 def put_item(spot_name: str, item: Item):
-    print("put_item", spot_name, item)
+    print("put_item", spot_name, item.model_dump(mode = 'json'))
     try:
-        manager.put_item(spot_name, item.model_dump())
+        manager.put_item(spot_name, item.model_dump(mode = 'json'))
         return {"status": "ok"}
     except OperationError as e:
         raise HTTPException(status_code = e.code)
